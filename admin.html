@@ -57,6 +57,8 @@ dialog::backdrop{background:rgba(35,80,123,.35)}
     <label>كلمة المرور / Password</label><input id="pass" type="password" autocomplete="current-password">
     <p id="loginErr" style="color:var(--danger);font-size:13px;min-height:18px"></p>
     <button class="btn sky" style="width:100%" id="loginBtn">تسجيل الدخول / Sign in</button>
+    <button class="btn plain sm" style="margin-top:10px" id="resetBtn">🔑 نسيت كلمة المرور / Forgot password</button>
+    <p class="hint" id="buildInfo" style="margin-top:14px"></p>
   </div>
 </div>
 
@@ -69,7 +71,7 @@ dialog::backdrop{background:rgba(35,80,123,.35)}
   <div class="tabs">
     <button class="tab active" data-tab="cards">🃏 البطاقات</button>
     <button class="tab" data-tab="cats">📁 الأقسام</button>
-    <button class="tab" data-tab="settings">⚙️ الإعدادات</button>
+    <button class="tab" data-tab="settings">⚙️ الإعدادات + PDF</button>
     <button class="tab" data-tab="io">📦 استيراد / تصدير</button>
     <button class="tab" data-tab="stats">📊 الإحصائيات</button>
   </div>
@@ -97,8 +99,10 @@ dialog::backdrop{background:rgba(35,80,123,.35)}
           <div><label>رقم الهاتف / Phone</label><input id="sPhone" placeholder="95575529"></div>
           <div><label>البريد / Email</label><input id="sEmail" placeholder="example@gmail.com"></div>
         </div>
-        <label>رابط ملف PDF لجميع البطاقات / PDF link</label><input id="sPdf" placeholder="https://...">
-        <label>نبذة عن المشروع (عربي)</label><textarea id="sAboutAr" rows="4"></textarea>
+        <label>رابط ملف PDF (اختياري) / PDF link (optional)</label><input id="sPdf" placeholder="https://nabnassor.github.io/Ershad/cards.pdf">
+        <p class="hint">💡 لا حاجة لرفع أي ملف: زر «تحميل PDF» في الموقع يولّد تلقائيًا صفحة بطاقات جاهزة للطباعة من بطاقاتك الحالية.<br>
+        No file upload needed — the site's Download-PDF button auto-generates a printable sheet from your current cards.<br>
+        إن أردت ملف PDF خاصًا: ضعه في مستودع GitHub نفسه ثم ألصق رابطه هنا / If you want a custom PDF: put it in your GitHub repo and paste its link here.</p>        <label>نبذة عن المشروع (عربي)</label><textarea id="sAboutAr" rows="4"></textarea>
         <label>About the project (English)</label><textarea id="sAboutEn" rows="4"></textarea>
         <div class="toolbar"><button class="btn sky" id="saveSettings">💾 حفظ الإعدادات</button></div>
       </div>
@@ -137,6 +141,8 @@ dialog::backdrop{background:rgba(35,80,123,.35)}
     <div><label>النص (عربي)</label><input id="cAr"></div>
     <div><label>Label (English)</label><input id="cEn"></div>
   </div>
+  <label>نص النطق بالتشكيل (اختياري) / Vocalized pronunciation</label>
+  <input id="cTts" placeholder="أُريدُ ماء — لتحسين نطق الصوت العربي">
   <div class="row">
     <div><label>أيقونة (إيموجي)</label><input id="cIcon" placeholder="🥛"></div>
     <div><label>الترتيب / Order</label><input id="cOrder" type="number" value="1"></div>
@@ -175,23 +181,48 @@ dialog::backdrop{background:rgba(35,80,123,.35)}
 <script type="module">
 /* =============== SAME FIREBASE CONFIG AS index.html =============== */
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
-  projectId: "PASTE_YOUR_PROJECT_ID",
-  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+  apiKey: "PASTE_ONLY_THIS_ONE_VALUE",
+  authDomain: "irshad-8199d.firebaseapp.com",
+  projectId: "irshad-8199d",
+  storageBucket: "irshad-8199d.firebasestorage.app",
   messagingSenderId: "685461208884",
   appId: "1:685461208884:web:1fa90c664471e324722f61"
 };
 /* ================================================================== */
 import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut}
+import {getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut, sendPasswordResetEmail}
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import * as F from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-import {getStorage, ref, uploadBytes, getDownloadURL}
-  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app), db = F.getFirestore(app), storage = getStorage(app);
+// The admin page must never be cache-stale: remove any service worker + cached copies.
+if ("serviceWorker" in navigator) {
+  navigator.serviceWorker.getRegistrations().then(rs => rs.forEach(r => r.unregister())).catch(()=>{});
+}
+if (window.caches) { caches.keys().then(ks => ks.forEach(k => caches.delete(k))).catch(()=>{}); }
+
+if (firebaseConfig.apiKey.startsWith("PASTE")) {
+  document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("loginErr").textContent =
+      "⚠️ apiKey غير موجود — الصق مفتاح apiKey من إعدادات المشروع في Firebase / apiKey missing — paste it from Firebase project settings";
+  });
+}
+// AUTO-CONFIG: fetches the real config straight from your Firebase project (irshad-8199d).
+// Manual pasting is now optional — if you ever paste a config above, it takes priority.
+async function resolveConfig(){
+  if(!String(firebaseConfig.apiKey||"").startsWith("PASTE")) return firebaseConfig;
+  const res = await fetch("https://irshad-8199d.firebaseapp.com/__/firebase/init.json");
+  if(!res.ok) throw new Error("init.json "+res.status);
+  return await res.json();
+}
+let CFG;
+try{ CFG = await resolveConfig(); }
+catch(e){
+  const el = document.getElementById("loginErr");
+  if(el) el.textContent = "تعذّر تحميل إعدادات Firebase تلقائيًا — تحقق من الإنترنت / Could not auto-load Firebase config: " + e.message;
+  throw e;
+}
+const app = initializeApp(CFG);
+const auth = getAuth(app), db = F.getFirestore(app);
 const $ = id => document.getElementById(id);
 const toast = m => { const t=$("toast"); t.textContent=m; t.style.display="block"; setTimeout(()=>t.style.display="none",2600); };
 
@@ -201,9 +232,39 @@ let cats=[], cards=[], editingCard=null, editingCat=null;
 $("loginBtn").onclick = async ()=>{
   $("loginErr").textContent="";
   try{ await signInWithEmailAndPassword(auth, $("email").value.trim(), $("pass").value); }
-  catch(e){ $("loginErr").textContent = "خطأ في البريد أو كلمة المرور / Wrong email or password"; }
+  catch(e){
+    const msgs = {
+      "auth/invalid-credential":   "خطأ في البريد أو كلمة المرور / Wrong email or password",
+      "auth/user-not-found":       "لا يوجد مستخدم بهذا البريد / No user with this email",
+      "auth/wrong-password":       "كلمة المرور غير صحيحة / Wrong password",
+      "auth/invalid-email":        "صيغة البريد غير صحيحة / Invalid email format",
+      "auth/unauthorized-domain":  "هذا الموقع غير مصرّح به — أضِف النطاق في Firebase → Authentication → Settings → Authorized domains / This website is not authorized in Firebase",
+      "auth/operation-not-allowed":"تسجيل الدخول بالبريد غير مفعّل في Firebase → Authentication → Sign-in method / Email sign-in is not enabled in Firebase",
+      "auth/network-request-failed":"مشكلة في الاتصال بالإنترنت / Network problem",
+      "auth/too-many-requests":    "محاولات كثيرة — انتظر دقائق ثم أعد المحاولة / Too many attempts, wait a few minutes",
+      "auth/user-disabled":        "هذا الحساب معطّل / This account is disabled"
+    };
+    $("loginErr").textContent = msgs[e.code] || ("خطأ / Error: " + (e.code || e.message));
+  }
 };
 $("logoutBtn").onclick = ()=>signOut(auth);
+$("resetBtn").onclick = async ()=>{
+  const em = $("email").value.trim();
+  if(!em){ $("loginErr").textContent = "اكتب بريدك أولًا ثم اضغط الزر / Type your email first"; return; }
+  try{
+    await sendPasswordResetEmail(auth, em);
+    $("loginErr").style.color = "#2E7D32";
+    $("loginErr").textContent = "تم إرسال رابط إعادة التعيين إلى بريدك ✅ افتح الرسالة وعيّن كلمة مرور جديدة / Reset link sent — check your inbox";
+  }catch(e){
+    $("loginErr").style.color = "var(--danger)";
+    $("loginErr").textContent = e.code==="auth/user-not-found"
+      ? "لا يوجد حساب بهذا البريد في هذا المشروع / No account with this email IN THIS PROJECT — check the project label below"
+      : "خطأ / Error: " + (e.code||e.message);
+  }
+};
+// shows which file version is live and which Firebase project this page talks to
+$("buildInfo").textContent = "admin v3 · Firebase project: " +
+  (CFG.projectId || "unknown");
 onAuthStateChanged(auth, u=>{
   $("loginView").style.display = u ? "none" : "grid";
   $("dash").style.display = u ? "block" : "none";
@@ -244,18 +305,18 @@ async function seed(){
   ["routine","📅","sun","الروتين اليومي","Daily routine"]];
   const batch = F.writeBatch(db);
   DC.forEach((c,i)=>batch.set(F.doc(db,"categories",c[0]),{icon:c[1],color:c[2],ar:c[3],en:c[4],order:i+1,visible:true}));
-  const K=[["want","🥛","أريد ماء","I want water"],["want","🍎","أريد أكل","I want food"],
-  ["want","🚽","أريد دورة المياه","I need the toilet"],["want","😴","أريد أن أرتاح","I want to rest"],
-  ["want","🤝","أحتاج مساعدة","I need help"],["want","🎲","أريد اللعب","I want to play"],
-  ["want","🤗","أريد حضنًا","I want a hug"],["want","🚪","أريد المغادرة","I want to leave"],
-  ["feel","😊","سعيد","Happy"],["feel","😢","حزين","Sad"],["feel","😡","غاضب","Angry"],
-  ["feel","😰","متوتر","Nervous"],["feel","😴","متعب","Tired"],["feel","🤕","أشعر بالألم","I feel pain"],
-  ["feel","😍","أحب هذا","I like this"],["feel","❌","لا أحب هذا","I don't like this"],
-  ["feel","🔊","المكان مزعج وأحتاج للهدوء","It's too loud, I need quiet"],
-  ["calm","🫁","تنفّس ببطء","Breathe slowly"],["calm","🧸","احضن لعبتك","Hug your toy"],
-  ["calm","💧","اشرب ماء","Drink water"],["calm","🎧","استخدم السماعات","Use headphones"],
-  ["calm","🤫","اجلس في ركن الهدوء","Sit in the quiet corner"]];
-  K.forEach((k,i)=>batch.set(F.doc(F.collection(db,"cards")),{cat:k[0],icon:k[1],ar:k[2],en:k[3],order:i+1,visible:true,tapCount:0}));
+  const K=[["want","🥛","أريد ماء","I want water","أُريدُ ماء"],["want","🍎","أريد أكل","I want food","أُريدُ أَكْل"],
+  ["want","🚽","أريد دورة المياه","I need the toilet","أُريدُ دَوْرَةَ المِياه"],["want","😴","أريد أن أرتاح","I want to rest","أُريدُ أَنْ أَرْتاح"],
+  ["want","🤝","أحتاج مساعدة","I need help","أَحْتاجُ مُساعَدَة"],["want","🎲","أريد اللعب","I want to play","أُريدُ اللَّعِب"],
+  ["want","🤗","أريد حضنًا","I want a hug","أُريدُ حُضْنًا"],["want","🚪","أريد المغادرة","I want to leave","أُريدُ المُغادَرَة"],
+  ["feel","😊","سعيد","Happy","أَنا سَعيد"],["feel","😢","حزين","Sad","أَنا حَزين"],["feel","😡","غاضب","Angry","أَنا غاضِب"],
+  ["feel","😰","متوتر","Nervous","أَنا مُتَوَتِّر"],["feel","😴","متعب","Tired","أَنا مُتْعَب"],["feel","🤕","أشعر بالألم","I feel pain","أَشْعُرُ بِالأَلَم"],
+  ["feel","😍","أحب هذا","I like this","أُحِبُّ هٰذا"],["feel","❌","لا أحب هذا","I don't like this","لا أُحِبُّ هٰذا"],
+  ["feel","🔊","المكان مزعج وأحتاج للهدوء","It's too loud, I need quiet","المَكانُ مُزْعِج وَأَحْتاجُ إِلى الهُدوء"],
+  ["calm","🫁","تنفّس ببطء","Breathe slowly","تَنَفَّسْ بِبُطْء"],["calm","🧸","احضن لعبتك","Hug your toy","اِحْضُنْ لُعْبَتَك"],
+  ["calm","💧","اشرب ماء","Drink water","اِشْرَبْ ماء"],["calm","🎧","استخدم السماعات","Use headphones","اِسْتَخْدِمِ السَّمّاعات"],
+  ["calm","🤫","اجلس في ركن الهدوء","Sit in the quiet corner","اِجْلِسْ في رُكْنِ الهُدوء"]];
+  K.forEach((k,i)=>batch.set(F.doc(F.collection(db,"cards")),{cat:k[0],icon:k[1],ar:k[2],en:k[3],tts:k[4]||"",order:i+1,visible:true,tapCount:0}));
   batch.set(F.doc(db,"settings","site"),{phone:"95575529",email:"Nasria.Aldaghatia@gmail.com",pdfURL:"",about_ar:"",about_en:""});
   await batch.commit();
 }
@@ -292,12 +353,12 @@ $("filterCat").onchange = renderCards;
 const cardDlg = $("cardDlg"), catDlg = $("catDlg");
 window.cardDlg = cardDlg; window.catDlg = catDlg;
 $("addCardBtn").onclick = ()=>{ editingCard=null; $("cardDlgTitle").textContent="بطاقة جديدة";
-  ["cAr","cEn","cIcon"].forEach(i=>$(i).value=""); $("cOrder").value=cards.length+1;
+  ["cAr","cEn","cIcon","cTts"].forEach(i=>$(i).value=""); $("cOrder").value=cards.length+1;
   $("cVisible").checked=true; $("cImg").value=""; $("cAud").value=""; $("cImgNow").textContent=""; cardDlg.showModal(); };
 document.addEventListener("click", async e=>{
   const ed=e.target.closest("[data-edit]"); if(ed){ const c=cards.find(x=>x.id===ed.dataset.edit); editingCard=c;
     $("cardDlgTitle").textContent="تعديل بطاقة"; $("cCat").value=c.cat; $("cAr").value=c.ar||""; $("cEn").value=c.en||"";
-    $("cIcon").value=c.icon||""; $("cOrder").value=c.order||1; $("cVisible").checked=c.visible!==false;
+    $("cIcon").value=c.icon||""; $("cTts").value=c.tts||""; $("cOrder").value=c.order||1; $("cVisible").checked=c.visible!==false;
     $("cImg").value=""; $("cAud").value=""; $("cImgNow").textContent=c.imageURL?"يوجد صورة مرفوعة حاليًا ✅":""; cardDlg.showModal(); }
   const dl=e.target.closest("[data-del]"); if(dl && confirm("حذف هذه البطاقة؟ / Delete this card?")){
     await F.deleteDoc(F.doc(db,"cards",dl.dataset.del)); toast("تم الحذف ✅"); loadAll(); }
@@ -307,18 +368,38 @@ document.addEventListener("click", async e=>{
   const dk=e.target.closest("[data-delcat]"); if(dk && confirm("حذف هذا القسم؟ (لن تُحذف بطاقاته تلقائيًا)")){
     await F.deleteDoc(F.doc(db,"categories",dk.dataset.delcat)); toast("تم الحذف ✅"); loadAll(); }
 });
-async function uploadFile(input, path){
+/* Storage-free uploads: files are compressed in the browser and saved inside Firestore
+   (works on the free Spark plan — no Firebase Storage needed). */
+function readAsDataURL(file){ return new Promise((res,rej)=>{ const r=new FileReader();
+  r.onload=()=>res(r.result); r.onerror=()=>rej(new Error("read failed")); r.readAsDataURL(file); }); }
+async function compressImage(file, maxDim=600, quality=0.82){
+  const src = await readAsDataURL(file);
+  const img = await new Promise((res,rej)=>{ const i=new Image(); i.onload=()=>res(i);
+    i.onerror=()=>rej(new Error("not an image")); i.src=src; });
+  const scale = Math.min(1, maxDim/Math.max(img.width,img.height));
+  const cv = document.createElement("canvas");
+  cv.width = Math.max(1, Math.round(img.width*scale)); cv.height = Math.max(1, Math.round(img.height*scale));
+  cv.getContext("2d").drawImage(img, 0, 0, cv.width, cv.height);
+  return cv.toDataURL("image/jpeg", quality);
+}
+async function uploadFile(input, kind){
   const f = input.files[0]; if(!f) return null;
-  const r = ref(storage, `${path}/${Date.now()}_${f.name}`);
-  await uploadBytes(r, f); return await getDownloadURL(r);
+  let data;
+  if(kind === "image"){ data = await compressImage(f); }
+  else{
+    if(f.size > 700*1024) throw new Error("الملف الصوتي كبير — الحد 700KB / Audio too large (max 700KB). سجّل مقطعًا أقصر");
+    data = await readAsDataURL(f);
+  }
+  if(data.length > 900*1024) throw new Error("الملف كبير جدًا بعد الضغط / File still too large after compression");
+  return data;
 }
 $("cSave").onclick = async ()=>{
   $("cSave").disabled=true;
   try{
     const data = {cat:$("cCat").value, ar:$("cAr").value.trim(), en:$("cEn").value.trim(),
-      icon:$("cIcon").value.trim(), order:Number($("cOrder").value)||1, visible:$("cVisible").checked};
-    const img = await uploadFile($("cImg"), "cards/images"); if(img) data.imageURL=img;
-    const aud = await uploadFile($("cAud"), "cards/audio");  if(aud) data.audioURL=aud;
+      tts:$("cTts").value.trim(), icon:$("cIcon").value.trim(), order:Number($("cOrder").value)||1, visible:$("cVisible").checked};
+    const img = await uploadFile($("cImg"), "image"); if(img) data.imageURL=img;
+    const aud = await uploadFile($("cAud"), "audio"); if(aud) data.audioURL=aud;
     if(editingCard) await F.updateDoc(F.doc(db,"cards",editingCard.id), data);
     else await F.addDoc(F.collection(db,"cards"), {...data, tapCount:0});
     cardDlg.close(); toast("تم الحفظ ✅"); loadAll();

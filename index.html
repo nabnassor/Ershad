@@ -115,6 +115,23 @@ main{max-width:980px; margin:0 auto; padding:24px 20px 130px}
 html[dir="ltr"] .back-fab .arr{display:inline-block; transform:scaleX(-1)}
 .offline-note{background:var(--sun-soft); border:1.5px solid var(--sun); border-radius:14px; padding:10px 16px;
   font-size:14px; margin-bottom:16px; display:none}
+
+/* ---------- printable card sheet (Download PDF) ---------- */
+#printSheet{display:none}
+@media print{
+  body > *:not(#printSheet){display:none!important}
+  #printSheet{display:block!important; color:#23507B}
+  .ps-head{text-align:center} .ps-head h1{font-size:20px;margin:0 0 2mm}
+  .ps-head p{font-size:10px;color:#5B7FA3;margin:0 0 6mm}
+  .ps-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:6mm}
+  .ps-card{border:1.2px solid #C9A227;border-radius:5mm;padding:2.5mm;page-break-inside:avoid;break-inside:avoid}
+  .ps-in{border:.6px solid rgba(201,162,39,.4);border-radius:3.5mm;padding:6mm 4mm;text-align:center;min-height:52mm;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3mm}
+  .ps-em{font-size:22mm;line-height:1}
+  .ps-card img{max-width:30mm;max-height:26mm;object-fit:contain}
+  .ps-w{font-size:17px;font-weight:800} .ps-we{font-size:11px;color:#5B7FA3}
+  @page{size:A4;margin:8mm}
+}
 </style>
 </head>
 <body>
@@ -219,10 +236,10 @@ html[dir="ltr"] .back-fab .arr{display:inline-block; transform:scaleX(-1)}
 <script type="module">
 /* =============== FIREBASE CONFIG — paste your full config here =============== */
 const firebaseConfig = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "PASTE_YOUR_PROJECT.firebaseapp.com",
-  projectId: "PASTE_YOUR_PROJECT_ID",
-  storageBucket: "PASTE_YOUR_PROJECT.appspot.com",
+  apiKey: "PASTE_ONLY_THIS_ONE_VALUE",
+  authDomain: "irshad-8199d.firebaseapp.com",
+  projectId: "irshad-8199d",
+  storageBucket: "irshad-8199d.firebasestorage.app",
   messagingSenderId: "685461208884",
   appId: "1:685461208884:web:1fa90c664471e324722f61"
 };
@@ -267,23 +284,23 @@ const DEFAULT_CATS = [
   {id:"routine", icon:"📅", color:"sun",  ar:"الروتين اليومي", en:"Daily routine", order:9},
 ];
 const DEFAULT_CARDS = [
-  {cat:"want", icon:"🥛", ar:"أريد ماء", en:"I want water"},
-  {cat:"want", icon:"🍎", ar:"أريد أكل", en:"I want food"},
-  {cat:"want", icon:"🚽", ar:"أريد دورة المياه", en:"I need the toilet"},
-  {cat:"want", icon:"😴", ar:"أريد أن أرتاح", en:"I want to rest"},
-  {cat:"want", icon:"🤝", ar:"أحتاج مساعدة", en:"I need help"},
-  {cat:"want", icon:"🎲", ar:"أريد اللعب", en:"I want to play"},
-  {cat:"want", icon:"🤗", ar:"أريد حضنًا", en:"I want a hug"},
-  {cat:"want", icon:"🚪", ar:"أريد المغادرة", en:"I want to leave"},
-  {cat:"feel", icon:"😊", ar:"سعيد", en:"Happy"},
-  {cat:"feel", icon:"😢", ar:"حزين", en:"Sad"},
-  {cat:"feel", icon:"😡", ar:"غاضب", en:"Angry"},
-  {cat:"feel", icon:"😰", ar:"متوتر", en:"Nervous"},
-  {cat:"feel", icon:"😴", ar:"متعب", en:"Tired"},
-  {cat:"feel", icon:"🤕", ar:"أشعر بالألم", en:"I feel pain"},
-  {cat:"feel", icon:"😍", ar:"أحب هذا", en:"I like this"},
-  {cat:"feel", icon:"❌", ar:"لا أحب هذا", en:"I don't like this"},
-  {cat:"feel", icon:"🔊", ar:"المكان مزعج وأحتاج للهدوء", en:"It's too loud, I need quiet"},
+  {cat:"want", icon:"🥛", ar:"أريد ماء", en:"I want water", tts:"أُريدُ ماء"},
+  {cat:"want", icon:"🍎", ar:"أريد أكل", en:"I want food", tts:"أُريدُ أَكْل"},
+  {cat:"want", icon:"🚽", ar:"أريد دورة المياه", en:"I need the toilet", tts:"أُريدُ دَوْرَةَ المِياه"},
+  {cat:"want", icon:"😴", ar:"أريد أن أرتاح", en:"I want to rest", tts:"أُريدُ أَنْ أَرْتاح"},
+  {cat:"want", icon:"🤝", ar:"أحتاج مساعدة", en:"I need help", tts:"أَحْتاجُ مُساعَدَة"},
+  {cat:"want", icon:"🎲", ar:"أريد اللعب", en:"I want to play", tts:"أُريدُ اللَّعِب"},
+  {cat:"want", icon:"🤗", ar:"أريد حضنًا", en:"I want a hug", tts:"أُريدُ حُضْنًا"},
+  {cat:"want", icon:"🚪", ar:"أريد المغادرة", en:"I want to leave", tts:"أُريدُ المُغادَرَة"},
+  {cat:"feel", icon:"😊", ar:"سعيد", en:"Happy", tts:"أَنا سَعيد"},
+  {cat:"feel", icon:"😢", ar:"حزين", en:"Sad", tts:"أَنا حَزين"},
+  {cat:"feel", icon:"😡", ar:"غاضب", en:"Angry", tts:"أَنا غاضِب"},
+  {cat:"feel", icon:"😰", ar:"متوتر", en:"Nervous", tts:"أَنا مُتَوَتِّر"},
+  {cat:"feel", icon:"😴", ar:"متعب", en:"Tired", tts:"أَنا مُتْعَب"},
+  {cat:"feel", icon:"🤕", ar:"أشعر بالألم", en:"I feel pain", tts:"أَشْعُرُ بِالأَلَم"},
+  {cat:"feel", icon:"😍", ar:"أحب هذا", en:"I like this", tts:"أُحِبُّ هٰذا"},
+  {cat:"feel", icon:"❌", ar:"لا أحب هذا", en:"I don't like this", tts:"لا أُحِبُّ هٰذا"},
+  {cat:"feel", icon:"🔊", ar:"المكان مزعج وأحتاج للهدوء", en:"It's too loud, I need quiet", tts:"المَكانُ مُزْعِج، وَأَحْتاجُ إِلى الهُدوء"},
   {cat:"act",  icon:"🎨", ar:"أريد الرسم", en:"I want to draw"},
   {cat:"act",  icon:"📚", ar:"أريد قصة", en:"I want a story"},
   {cat:"act",  icon:"⚽", ar:"أريد الكرة", en:"I want the ball"},
@@ -304,11 +321,11 @@ const DEFAULT_CARDS = [
   {cat:"need", icon:"🧼", ar:"غسل اليدين", en:"Wash hands"},
   {cat:"need", icon:"🧥", ar:"أشعر بالبرد", en:"I'm cold"},
   {cat:"need", icon:"🥵", ar:"أشعر بالحر", en:"I'm hot"},
-  {cat:"calm", icon:"🫁", ar:"تنفّس ببطء", en:"Breathe slowly"},
-  {cat:"calm", icon:"🧸", ar:"احضن لعبتك", en:"Hug your toy"},
-  {cat:"calm", icon:"💧", ar:"اشرب ماء", en:"Drink water"},
-  {cat:"calm", icon:"🎧", ar:"استخدم السماعات", en:"Use headphones"},
-  {cat:"calm", icon:"🤫", ar:"اجلس في ركن الهدوء", en:"Sit in the quiet corner"},
+  {cat:"calm", icon:"🫁", ar:"تنفّس ببطء", en:"Breathe slowly", tts:"تَنَفَّسْ بِبُطْء"},
+  {cat:"calm", icon:"🧸", ar:"احضن لعبتك", en:"Hug your toy", tts:"اِحْضُنْ لُعْبَتَك"},
+  {cat:"calm", icon:"💧", ar:"اشرب ماء", en:"Drink water", tts:"اِشْرَبْ ماء"},
+  {cat:"calm", icon:"🎧", ar:"استخدم السماعات", en:"Use headphones", tts:"اِسْتَخْدِمِ السَّمّاعات"},
+  {cat:"calm", icon:"🤫", ar:"اجلس في ركن الهدوء", en:"Sit in the quiet corner", tts:"اِجْلِسْ في رُكْنِ الهُدوء"},
   {cat:"routine",icon:"🌅", ar:"الاستيقاظ", en:"Wake up"},
   {cat:"routine",icon:"🪥", ar:"تنظيف الأسنان", en:"Brush teeth"},
   {cat:"routine",icon:"🍽️", ar:"وقت الطعام", en:"Meal time"},
@@ -324,11 +341,15 @@ let db=null, fs=null, currentCat=null;
 
 /* ---------- firebase (graceful) ---------- */
 async function initFirebase(){
-  if(firebaseConfig.apiKey.startsWith("PASTE")) { showOffline(); return; }
+  let cfg = firebaseConfig;
+  if(String(cfg.apiKey||"").startsWith("PASTE")){
+    try{ cfg = await (await fetch("https://irshad-8199d.firebaseapp.com/__/firebase/init.json")).json(); }
+    catch(e){ showOffline(); return; }
+  }
   try{
     const {initializeApp} = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     fs = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
-    db = fs.getFirestore(initializeApp(firebaseConfig));
+    db = fs.getFirestore(initializeApp(cfg));
     const [cs, ks, st] = await Promise.all([
       fs.getDocs(fs.query(fs.collection(db,"categories"), fs.orderBy("order"))),
       fs.getDocs(fs.query(fs.collection(db,"cards"), fs.orderBy("order"))),
@@ -361,6 +382,33 @@ function applySettings(){
   if(settings.pdfURL) document.getElementById("pdfLink").href = settings.pdfURL;
   if(settings.phone){ const p=document.getElementById("phoneLink"); p.href="tel:"+settings.phone; p.textContent="☎️ "+settings.phone; }
   if(settings.email) document.getElementById("mailLink").href = "mailto:"+settings.email;
+}
+
+/* PDF button: opens the admin-uploaded file, or generates a printable card sheet (print → Save as PDF) */
+document.getElementById("pdfLink").addEventListener("click", e=>{
+  if(settings.pdfURL) return;                     // real file uploaded → normal link behaviour
+  e.preventDefault(); printCards();
+});
+function printCards(){
+  const btn = document.getElementById("pdfLink");
+  const oldTxt = btn.textContent;
+  btn.textContent = lang==="ar" ? "⏳ جارٍ تجهيز البطاقات…" : "⏳ Preparing cards…";
+  let host = document.getElementById("printSheet");
+  if(!host){ host = document.createElement("div"); host.id = "printSheet"; document.body.appendChild(host); }
+  host.innerHTML = `
+    <div class="ps-head"><h1>إرشاد 🃏 Irshad</h1>
+    <p>مع إرشاد بطلنا ينال عوناً وسداد — اطبعها، قصّها، اجمعها بحلقة لتصبح قلادة<br>Print, cut, and ring the cards into a necklace</p></div>
+    <div class="ps-grid">${cards.map(c=>`
+      <div class="ps-card"><div class="ps-in">
+        ${c.imageURL?`<img src="${c.imageURL}" alt="">`:`<div class="ps-em">${c.icon||"🖼️"}</div>`}
+        <div class="ps-w">${c.ar||""}</div><div class="ps-we">${c.en||""}</div>
+      </div></div>`).join("")}
+    </div>`;
+  setTimeout(()=>{                 // let images/layout settle, then open the print dialog
+    try{ window.print(); }
+    catch(e){ alert(lang==="ar" ? "المتصفح لا يدعم الطباعة المباشرة" : "This browser cannot print directly"); }
+    btn.textContent = oldTxt;
+  }, 300);
 }
 
 /* ---------- rendering ---------- */
@@ -421,26 +469,30 @@ function pickVoice(code){                                // code: "ar" | "en"
       || (code==="ar" ? VOICES.find(v => /arab|عرب|majed|naayf|laila|hoda|tarik/i.test(v.name)) : null)
       || null;
 }
-let warnedNoArabic = false;
+/* Online TTS fallback — plays Arabic even when the device has NO Arabic voice installed */
+let onlineAudio = null;
+function speakOnline(txt, code){
+  try{
+    if(onlineAudio){ onlineAudio.pause(); }
+    const url = "https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl="
+              + code + "&q=" + encodeURIComponent(txt.slice(0,190));
+    onlineAudio = new Audio(url);
+    onlineAudio.play().catch(()=>{ /* offline + no local voice: nothing more we can do */ });
+  }catch(e){}
+}
 function say(c){
   const url = lang==="ar" ? c.audioURL : (c.audioURLEn||c.audioURL);
-  if(url){ new Audio(url).play().catch(()=>{}); return; }
-  if(!("speechSynthesis" in window)) return;
-  try{
-    const u = new SpeechSynthesisUtterance(L(c));
-    const v = pickVoice(lang==="ar" ? "ar" : "en");
-    if(v){ u.voice = v; u.lang = v.lang; }
-    else u.lang = lang==="ar" ? "ar-SA" : "en-US";
-    u.rate = .8; u.pitch = 1;
-    if(lang==="ar" && !v && VOICES.length && !warnedNoArabic){
-      warnedNoArabic = true;
-      showToast(lang==="ar"
-        ? "لا يوجد صوت عربي مثبت على هذا الجهاز — يمكن رفع تسجيلات صوتية من لوحة التحكم"
-        : "No Arabic voice installed on this device — you can upload recordings from the admin panel");
-    }
+  if(url){ new Audio(url).play().catch(()=>{}); return; }   // 1) admin-uploaded recording wins
+  const txt = (lang==="ar" && c.tts) ? c.tts : L(c), code = lang==="ar" ? "ar" : "en";
+  const v = ("speechSynthesis" in window) ? pickVoice(code) : null;
+  if(!v){ speakOnline(txt, code); return; }                 // 2) no local voice → online voice
+  try{                                                      // 3) local device voice
+    const u = new SpeechSynthesisUtterance(txt);
+    u.voice = v; u.lang = v.lang; u.rate = .8; u.pitch = 1;
+    u.onerror = ()=>speakOnline(txt, code);                 // local voice failed → online voice
     speechSynthesis.cancel();
-    setTimeout(()=>speechSynthesis.speak(u), 80);        // avoids Chrome cancel/speak race
-  }catch(e){}
+    setTimeout(()=>speechSynthesis.speak(u), 80);           // avoids Chrome cancel/speak race
+  }catch(e){ speakOnline(txt, code); }
 }
 function showToast(msg){
   let t = document.getElementById("toast");
